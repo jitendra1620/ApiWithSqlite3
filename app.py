@@ -3,6 +3,7 @@ from flask_restful import Resource, Api
 import dbManager
 from task import Task
 import sqlite3
+from generalMethods import GeneralMethods
 
 app = Flask(__name__)
 api = Api(app)
@@ -10,25 +11,36 @@ api = Api(app)
 
 class GetAllTask(Resource):
     def get(self):
+        response = GeneralMethods.checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
         tasks = dbManager.getAllTasks()
         return jsonify({'allTask': tasks})
 
     def post(self):
+        response = GeneralMethods.checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
         some_json = request.get_json()
         return {'you sent': some_json}
 
 
 class GetTask(Resource):
     def get(self, taskID):
-    	task = dbManager.getTaskByID(taskID)
-    	if "task" in task:
-    		return {"error": task["task"]}, 404
-    	return jsonify({'task': task})
-        
+        response = GeneralMethods.checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
+        task = dbManager.getTaskByID(taskID)
+        if "task" in task:
+            return {"error": task["task"]}, 404
+        return jsonify({'task': task})
 
 
 class CreateTask(Resource):
     def post(self):
+        response = GeneralMethods.checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
         if not request.get_json() or not 'title' in request.get_json():
             return {"error": "bad request paramter."}, 404
         taskToInsert = Task(request.json.get('id', "Default"), request.json.get(
@@ -39,6 +51,9 @@ class CreateTask(Resource):
 
 class UpdateTask(Resource):
     def put(self, taskID):
+        response = GeneralMethods.checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
         if not request.get_json():
             return {"error": "bad request, json not in correct formate."}, 400
         if 'title' in request.get_json() and type(request.get_json()['title']) != str:
@@ -47,15 +62,22 @@ class UpdateTask(Resource):
             return {"error": "bad request paramter, description"}, 404
         if 'done' in request.get_json() and type(request.get_json()['done']) is not bool:
             return {"error": "bad request paramter, done"}, 400
-        taskTitle = request.json.get('title','title')
-        taskDescription = request.json.get('description','description')
+        taskTitle = request.json.get('title', 'title')
+        taskDescription = request.json.get('description', 'description')
         taskDone = request.json.get('done', False)
-        task = dbManager.updateTask(taskTitle, taskDescription, taskDone, taskID)
+        task = dbManager.updateTask(
+            taskTitle, taskDescription, taskDone, taskID)
         return jsonify({'task': task})
+
 
 class DeleteTask(Resource):
     def delete(self, taskID):
-    	return jsonify({'result': dbManager.removeTask(taskID)})
+        response = checkIfHederKeyunauthorized(request.headers)
+        if response is not None:
+            return response
+        return jsonify({'result': dbManager.removeTask(taskID)})
+
+
 
 
 api.add_resource(GetAllTask, '/allTask/')
